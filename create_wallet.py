@@ -2,6 +2,7 @@ import json
 import secrets
 import hashlib
 import hmac
+import unicodedata
 from typing import Tuple
 
 # BIP39 wordlist (English)
@@ -14,6 +15,19 @@ except ImportError:
 
 VALID_WORD_COUNTS = [12, 15, 18, 21, 24]
 DERIVATION_PATH = "m/84h/746h/0h"
+DERIVATION_PATH_ELECTRUM = "m/0h"  # Electrum uses m/0' for segwit
+
+def normalize_text(text: str) -> str:
+    """Normalize text according to Electrum standard (NFKD, lowercase, remove accents)."""
+    # Normalize to NFKD
+    text = unicodedata.normalize('NFKD', text)
+    # Lowercase
+    text = text.lower()
+    # Remove accents (combining characters)
+    text = ''.join([c for c in text if not unicodedata.combining(c)])
+    # Normalize whitespaces
+    text = ' '.join(text.split())
+    return text
 
 def entropy_bits_for_words(word_count: int) -> int:
     """Calcola i bit di entropia necessari per il numero di parole."""
@@ -36,7 +50,7 @@ def generate_electrum_mnemonic(word_count: int) -> str:
     mnemo = Mnemonic("english")
     wordlist = mnemo.wordlist
 
-    # Electrum genera mnemonic e verifica che l'hash inizi con "01" per segwit
+    # Electrum genera mnemonic e verifica che l'hash inizi con "100" per segwit
     while True:
         entropy_bits = entropy_bits_for_words(word_count)
         entropy = secrets.token_bytes(entropy_bits // 8)
@@ -53,15 +67,20 @@ def generate_electrum_mnemonic(word_count: int) -> str:
         mnemonic = " ".join(words)
 
         # Verifica prefisso Electrum per segwit native (0x100)
-        hm = hmac.new(b"Seed version", mnemonic.encode('utf-8'), hashlib.sha512).hexdigest()
+        # Normalizza il mnemonic prima di verificare (come fa Electrum)
+        normalized = normalize_text(mnemonic)
+        hm = hmac.new(b"Seed version", normalized.encode('utf-8'), hashlib.sha512).hexdigest()
         if hm.startswith("100"):
             return mnemonic
 
 def mnemonic_to_seed(mnemonic: str, passphrase: str = "", electrum: bool = False) -> bytes:
     """Converte mnemonic in seed."""
     if electrum:
+        # Electrum normalizza il testo prima della conversione
+        mnemonic = normalize_text(mnemonic)
+        passphrase = normalize_text(passphrase) if passphrase else ''
         # Electrum usa "electrum" + passphrase come salt
-        salt = ("electrum" + passphrase).encode('utf-8')
+        salt = (b'electrum' + passphrase.encode('utf-8'))
     else:
         # BIP39 usa "mnemonic" + passphrase come salt
         salt = ("mnemonic" + passphrase).encode('utf-8')
@@ -221,8 +240,8 @@ def derive_path(seed: bytes, path: str = DERIVATION_PATH) -> dict:
         'chain_code': current_chain_code
     }
 
-def derive_addresses(account_key: bytes, account_chain_code: bytes, count: int = 10) -> list:
-    """Deriva i primi N indirizzi dal path m/84h/746h/0h/0/i."""
+def derive_addresses(account_key: bytes, account_chain_code: bytes, count: int = 10, base_path: str = DERIVATION_PATH) -> list:
+    """Deriva i primi N indirizzi dal path base_path/0/i."""
     # Deriva /0 (external chain)
     external_key, external_chain_code = derive_normal_child(account_key, account_chain_code, 0)
 
@@ -231,7 +250,7 @@ def derive_addresses(account_key: bytes, account_chain_code: bytes, count: int =
         child_key, _ = derive_normal_child(external_key, external_chain_code, i)
         address = private_key_to_address(child_key)
         addresses.append({
-            'path': f"m/84h/746h/0h/0/{i}",
+            'path': f"{base_path}/0/{i}",
             'address': address
         })
 
@@ -275,11 +294,14 @@ def main():
         # Genera seed
         seed = mnemonic_to_seed(mnemonic, "", use_electrum)
 
+        # Scegli il path di derivazione in base allo standard
+        derivation_path = DERIVATION_PATH_ELECTRUM if use_electrum else DERIVATION_PATH
+
         # Deriva chiavi
-        keys = derive_path(seed, DERIVATION_PATH)
+        keys = derive_path(seed, derivation_path)
 
         # Deriva primi 10 indirizzi
-        addresses = derive_addresses(keys['key'], keys['chain_code'], 10)
+        addresses = derive_addresses(keys['key'], keys['chain_code'], 10, derivation_path)
 
         # Risultato
         result = {
@@ -287,7 +309,7 @@ def main():
             'mnemonic': mnemonic,
             'master_zprv': keys['master_zprv'],
             'master_zpub': keys['master_zpub'],
-            'derivation_path': DERIVATION_PATH,
+            'derivation_path': derivation_path,
             'zprv': keys['zprv'],
             'zpub': keys['zpub'],
             'addresses': addresses
