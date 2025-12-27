@@ -59,7 +59,7 @@ BECH32_HRP=plm
 Run the script:
 
 ```bash
-python create_wallet.py
+python run.py
 ```
 
 Follow the interactive prompts:
