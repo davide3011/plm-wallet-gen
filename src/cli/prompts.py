@@ -10,16 +10,16 @@ def prompt_word_count() -> int:
     Returns:
         Selected word count
     """
-    print("Quante parole vuoi usare per il mnemonic?")
-    print("Opzioni: 12, 15, 18, 21, 24")
+    print("How many words do you want for the mnemonic?")
+    print("Options: 12, 15, 18, 21, 24")
     while True:
         try:
-            word_count = int(input("Numero parole: ").strip())
+            word_count = int(input("Number of words: ").strip())
             if word_count in VALID_WORD_COUNTS:
                 return word_count
-            print("Valore non valido. Scegli tra: 12, 15, 18, 21, 24")
+            print("Invalid value. Choose from: 12, 15, 18, 21, 24")
         except ValueError:
-            print("Inserisci un numero valido.")
+            print("Please enter a valid number.")
 
 
 def prompt_standard() -> str:
@@ -29,16 +29,16 @@ def prompt_standard() -> str:
     Returns:
         'bip39' or 'electrum'
     """
-    print("\nQuale standard vuoi usare?")
-    print("1. BIP39 (compatibile con la maggior parte dei wallet)")
-    print("2. Electrum (standard Electrum segwit)")
+    print("\nWhich standard do you want to use?")
+    print("1. BIP39 (compatible with most wallets)")
+    print("2. Electrum (Electrum segwit standard)")
     while True:
-        choice = input("Scelta (1/2): ").strip()
+        choice = input("Choice (1/2): ").strip()
         if choice == "1":
             return "bip39"
         elif choice == "2":
             return "electrum"
-        print("Scelta non valida. Inserisci 1 o 2.")
+        print("Invalid choice. Enter 1 or 2.")
 
 
 def prompt_save_wallet() -> tuple[bool, str]:
@@ -48,9 +48,9 @@ def prompt_save_wallet() -> tuple[bool, str]:
     Returns:
         Tuple of (save, filename)
     """
-    save = input("\nVuoi salvare i dati in un file? (s/n): ").strip().lower()
-    if save == 's':
-        filename = input("Nome file (senza estensione): ").strip()
+    save = input("\nDo you want to save the data to a file? (y/n): ").strip().lower()
+    if save == 'y':
+        filename = input("Filename (without extension): ").strip()
         if not filename:
             filename = "wallet"
         if not filename.endswith('.json'):

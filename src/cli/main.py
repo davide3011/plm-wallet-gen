@@ -7,7 +7,7 @@ from .output import print_wallet_info, save_to_json
 
 def main():
     """Main CLI function."""
-    print("=== Generatore Wallet HD ===\n")
+    print("=== HD Wallet Generator ===\n")
 
     try:
         # Prompt for word count
@@ -31,9 +31,9 @@ def main():
             save_to_json(wallet_data, filename)
 
     except ImportError as e:
-        print(f"Errore: {e}")
+        print(f"Error: {e}")
     except Exception as e:
-        print(f"Errore: {e}")
+        print(f"Error: {e}")
 
 
 if __name__ == '__main__':

@@ -34,4 +34,4 @@ def save_to_json(wallet_data: dict, filename: str):
     with open(filepath, 'w') as f:
         json.dump(wallet_data, f, indent=4)
 
-    print(f"Salvato in: {filepath}")
+    print(f"Saved to: {filepath}")

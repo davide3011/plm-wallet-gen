@@ -2,6 +2,8 @@
 
 HD (Hierarchical Deterministic) wallet generator for Palladium (PLM) supporting BIP39 and Electrum standards.
 
+This tool provides full transparency in the wallet creation process, allowing users to verify and understand exactly how their Palladium wallets are generated following industry-standard cryptographic practices.
+
 ## Features
 
 - BIP39 mnemonic generation (12, 15, 18, 21, 24 words)
@@ -14,11 +16,6 @@ HD (Hierarchical Deterministic) wallet generator for Palladium (PLM) supporting 
 ## Installation
 
 ### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd plm-wallet-gen
-```
 
 ### 2. Create a virtual environment (recommended)
 
