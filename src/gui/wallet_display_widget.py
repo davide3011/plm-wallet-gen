@@ -5,7 +5,7 @@ from PyQt6.QtWidgets import (
     QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem,
     QFileDialog, QMessageBox, QScrollArea, QCheckBox
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QClipboard
 from PyQt6.QtWidgets import QApplication
 import json
@@ -14,6 +14,8 @@ from pathlib import Path
 
 class WalletDisplayWidget(QWidget):
     """Widget for displaying wallet information."""
+
+    wallet_saved = pyqtSignal()
 
     def __init__(self):
         super().__init__()
@@ -292,10 +294,20 @@ class WalletDisplayWidget(QWidget):
         if not self.wallet_data:
             return
 
+        # Create wallets directory if it doesn't exist
+        wallets_dir = Path("wallets")
+        wallets_dir.mkdir(parents=True, exist_ok=True)
+
+        # Generate default filename based on standard and timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        standard = self.wallet_data.get('standard', 'wallet').replace(' ', '_')
+        default_filename = f"{standard}_{timestamp}.json"
+
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Wallet Data",
-            str(Path.home() / "wallet.json"),
+            str(wallets_dir / default_filename),
             "JSON Files (*.json)"
         )
 
@@ -304,6 +316,7 @@ class WalletDisplayWidget(QWidget):
                 with open(file_path, 'w') as f:
                     json.dump(self.wallet_data, f, indent=2)
                 QMessageBox.information(self, "Success", f"Wallet saved to:\n{file_path}")
+                self.wallet_saved.emit()  # Notify that wallet was saved
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save wallet:\n{str(e)}")
 

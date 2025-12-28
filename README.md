@@ -65,11 +65,13 @@ python run_gui.py
 ```
 
 The GUI provides:
-- Easy-to-use interface for wallet generation
-- Visual display of all wallet information
+- **Generate Wallet**: Easy-to-use interface for wallet generation
+- **Open Wallet**: Browse and load previously saved wallets from the wallets folder
+- **Wallet Details**: Visual display of all wallet information
 - Copy to clipboard functionality for all keys and addresses
 - Export wallet data to JSON or mnemonic to text file
-- Organized tabs for generation and wallet details
+- Advanced option to show/hide Master Extended Keys
+- Delete saved wallets directly from the interface
 
 ### Command Line Interface (CLI)
 
