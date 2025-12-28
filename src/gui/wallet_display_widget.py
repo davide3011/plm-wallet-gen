@@ -36,7 +36,8 @@ class WalletDisplayWidget(QWidget):
         # Content widget
         content_widget = QWidget()
         layout = QVBoxLayout(content_widget)
-        layout.setSpacing(15)
+        layout.setSpacing(10)
+        layout.setContentsMargins(10, 10, 10, 10)
 
         # Title
         title = QLabel("Wallet Details")
@@ -55,7 +56,8 @@ class WalletDisplayWidget(QWidget):
         # Wallet info container (hidden initially)
         self.wallet_container = QWidget()
         wallet_layout = QVBoxLayout(self.wallet_container)
-        wallet_layout.setSpacing(15)
+        wallet_layout.setSpacing(10)
+        wallet_layout.setContentsMargins(0, 0, 0, 0)
 
         # Standard and Derivation Path
         info_group = QGroupBox("Wallet Information")
@@ -201,7 +203,6 @@ class WalletDisplayWidget(QWidget):
         self.addresses_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.addresses_table.setAlternatingRowColors(True)
         self.addresses_table.verticalHeader().setVisible(False)
-        self.addresses_table.setMinimumHeight(500)  # Increased minimum height
         self.addresses_table.setStyleSheet("""
             QTableWidget {
                 gridline-color: #d0d0d0;
@@ -248,8 +249,6 @@ class WalletDisplayWidget(QWidget):
         self.wallet_container.setLayout(wallet_layout)
         self.wallet_container.setVisible(False)
         layout.addWidget(self.wallet_container)
-
-        layout.addStretch()
 
         scroll.setWidget(content_widget)
         main_layout.addWidget(scroll)
@@ -327,6 +326,37 @@ class WalletDisplayWidget(QWidget):
             self.addresses_table.resizeRowsToContents()
 
         self.addresses_table.resizeColumnToContents(0)
+
+        # Adjust table height based on content
+        self._adjust_table_height(show_keys, len(addresses))
+
+    def _adjust_table_height(self, show_keys: bool, num_addresses: int):
+        """
+        Adjust table height based on content.
+
+        Args:
+            show_keys: Whether keys are shown
+            num_addresses: Number of addresses
+        """
+        # Calculate height based on content
+        header_height = self.addresses_table.horizontalHeader().height()
+
+        if show_keys:
+            # Each row is 75px when keys are shown
+            row_height = 75
+            total_height = header_height + (row_height * num_addresses) + 2  # +2 for borders
+        else:
+            # Each row is ~30px when keys are hidden
+            row_height = 30
+            total_height = header_height + (row_height * num_addresses) + 2
+
+        # Set minimum and maximum heights for better UX
+        min_height = 200  # Minimum height
+        max_height = 600  # Maximum height to avoid too large tables
+
+        calculated_height = max(min_height, min(total_height, max_height))
+        self.addresses_table.setMinimumHeight(calculated_height)
+        self.addresses_table.setMaximumHeight(calculated_height)
 
     def toggle_keys_display(self):
         """Toggle the display of public and private keys in the addresses table."""
