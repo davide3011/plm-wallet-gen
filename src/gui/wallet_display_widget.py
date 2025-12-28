@@ -211,6 +211,9 @@ class WalletDisplayWidget(QWidget):
             QTableWidget::item {
                 padding: 5px;
             }
+            QTableWidget::item:hover {
+                background-color: transparent;
+            }
         """)
         addresses_layout.addWidget(self.addresses_table)
 
@@ -351,7 +354,22 @@ class WalletDisplayWidget(QWidget):
         copy_addr_btn = QPushButton("📋")
         copy_addr_btn.setFixedSize(25, 20)
         copy_addr_btn.setToolTip("Copy address")
-        copy_addr_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(addr_info['address']))
+        copy_addr_btn.setStyleSheet("""
+            QPushButton {
+                background-color: #f0f0f0;
+                border: 1px solid #ccc;
+                border-radius: 3px;
+            }
+            QPushButton:hover {
+                background-color: #0078d7;
+                color: white;
+                border: 1px solid #0078d7;
+            }
+            QPushButton:pressed {
+                background-color: #005a9e;
+            }
+        """)
+        copy_addr_btn.clicked.connect(lambda checked=False, btn=copy_addr_btn, txt=addr_info['address']: self._copy_with_feedback(btn, txt))
         addr_layout.addWidget(copy_addr_btn)
 
         layout.addLayout(addr_layout)
@@ -376,7 +394,22 @@ class WalletDisplayWidget(QWidget):
             copy_pubkey_btn = QPushButton("📋")
             copy_pubkey_btn.setFixedSize(25, 20)
             copy_pubkey_btn.setToolTip("Copy public key")
-            copy_pubkey_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(pubkey))
+            copy_pubkey_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f0f0f0;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #2e7d32;
+                    color: white;
+                    border: 1px solid #2e7d32;
+                }
+                QPushButton:pressed {
+                    background-color: #1b5e20;
+                }
+            """)
+            copy_pubkey_btn.clicked.connect(lambda checked=False, btn=copy_pubkey_btn, key=pubkey: self._copy_with_feedback(btn, key))
             pubkey_layout.addWidget(copy_pubkey_btn)
 
             layout.addLayout(pubkey_layout)
@@ -400,7 +433,22 @@ class WalletDisplayWidget(QWidget):
             copy_privkey_btn = QPushButton("📋")
             copy_privkey_btn.setFixedSize(25, 20)
             copy_privkey_btn.setToolTip("Copy private key")
-            copy_privkey_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(privkey))
+            copy_privkey_btn.setStyleSheet("""
+                QPushButton {
+                    background-color: #f0f0f0;
+                    border: 1px solid #ccc;
+                    border-radius: 3px;
+                }
+                QPushButton:hover {
+                    background-color: #c62828;
+                    color: white;
+                    border: 1px solid #c62828;
+                }
+                QPushButton:pressed {
+                    background-color: #8e0000;
+                }
+            """)
+            copy_privkey_btn.clicked.connect(lambda checked=False, btn=copy_privkey_btn, key=privkey: self._copy_with_feedback(btn, key))
             privkey_layout.addWidget(copy_privkey_btn)
 
             layout.addLayout(privkey_layout)
@@ -418,6 +466,29 @@ class WalletDisplayWidget(QWidget):
         clipboard.setText(text)
         # Optional: Show brief status in status bar if available
         # For now, just copy silently for better UX
+
+    def _copy_with_feedback(self, button: QPushButton, text: str):
+        """
+        Copy text to clipboard and show visual feedback on the button.
+
+        Args:
+            button: The button that was clicked
+            text: Text to copy
+        """
+        from PyQt6.QtCore import QTimer
+
+        # Copy to clipboard
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+
+        # Store original text
+        original_text = button.text()
+
+        # Change button to checkmark
+        button.setText("✓")
+
+        # Reset button text after 1 second
+        QTimer.singleShot(1000, lambda: button.setText(original_text))
 
     def _adjust_table_height(self, show_keys: bool, num_addresses: int):
         """
