@@ -56,7 +56,26 @@ BECH32_HRP=plm
 
 ## Usage
 
-Run the script:
+### Graphical User Interface (GUI)
+
+Launch the graphical interface:
+
+```bash
+python run_gui.py
+```
+
+The GUI provides:
+- **Generate Wallet**: Easy-to-use interface for wallet generation
+- **Open Wallet**: Browse and load previously saved wallets from the wallets folder
+- **Wallet Details**: Visual display of all wallet information
+- Copy to clipboard functionality for all keys and addresses
+- Export wallet data to JSON or mnemonic to text file
+- Advanced option to show/hide Master Extended Keys
+- Delete saved wallets directly from the interface
+
+### Command Line Interface (CLI)
+
+Run the CLI version:
 
 ```bash
 python run.py
@@ -110,6 +129,7 @@ Example output:
 - `ecdsa` - Elliptic curve cryptography
 - `base58` - Base58 encoding
 - `bech32` - Bech32 encoding for addresses
+- `PyQt6` - GUI framework (for graphical interface)
 
 ## License
 
