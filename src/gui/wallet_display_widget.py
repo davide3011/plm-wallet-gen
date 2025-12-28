@@ -3,7 +3,7 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem,
-    QFileDialog, QMessageBox, QScrollArea, QCheckBox
+    QFileDialog, QMessageBox, QScrollArea, QCheckBox, QHeaderView
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QClipboard
@@ -185,17 +185,47 @@ class WalletDisplayWidget(QWidget):
         addresses_group.setStyleSheet("QGroupBox::title { font-weight: bold; }")
         addresses_layout = QVBoxLayout()
 
+        # Show keys checkbox
+        self.show_keys_checkbox = QCheckBox("Show Public Keys and Private Keys")
+        self.show_keys_checkbox.setChecked(False)
+        self.show_keys_checkbox.setToolTip("Display the public key (compressed) and private key in hexadecimal format for each address")
+        self.show_keys_checkbox.stateChanged.connect(self.toggle_keys_display)
+        addresses_layout.addWidget(self.show_keys_checkbox)
+
         self.addresses_table = QTableWidget()
         self.addresses_table.setColumnCount(2)
-        self.addresses_table.setHorizontalHeaderLabels(["Derivation Path", "Address"])
-        self.addresses_table.horizontalHeader().setStretchLastSection(True)
+        self.addresses_table.setHorizontalHeaderLabels(["Path", "Address"])
+        self.addresses_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.addresses_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
         self.addresses_table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.addresses_table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
+        self.addresses_table.setAlternatingRowColors(True)
+        self.addresses_table.verticalHeader().setVisible(False)
+        self.addresses_table.setMinimumHeight(500)  # Increased minimum height
+        self.addresses_table.setStyleSheet("""
+            QTableWidget {
+                gridline-color: #d0d0d0;
+                selection-background-color: #0078d7;
+            }
+            QTableWidget::item {
+                padding: 5px;
+            }
+        """)
         addresses_layout.addWidget(self.addresses_table)
+
+        # Buttons layout
+        addr_btn_layout = QHBoxLayout()
 
         copy_addresses_btn = QPushButton("Copy All Addresses")
         copy_addresses_btn.clicked.connect(self.copy_all_addresses)
-        addresses_layout.addWidget(copy_addresses_btn)
+        addr_btn_layout.addWidget(copy_addresses_btn)
+
+        copy_selected_btn = QPushButton("Copy Selected Row")
+        copy_selected_btn.clicked.connect(self.copy_selected_row)
+        addr_btn_layout.addWidget(copy_selected_btn)
+
+        addr_btn_layout.addStretch()
+        addresses_layout.addLayout(addr_btn_layout)
 
         addresses_group.setLayout(addresses_layout)
         wallet_layout.addWidget(addresses_group)
@@ -247,16 +277,60 @@ class WalletDisplayWidget(QWidget):
         self.account_zpub_text.setPlainText(wallet_data['zpub'])
 
         # Populate addresses table
-        addresses = wallet_data['addresses']
+        self._populate_addresses_table()
+
+    def _populate_addresses_table(self):
+        """Populate the addresses table based on current settings."""
+        if not self.wallet_data:
+            return
+
+        addresses = self.wallet_data['addresses']
+        show_keys = self.show_keys_checkbox.isChecked()
+
+        # Always use 2 columns: Path and Details
+        self.addresses_table.setColumnCount(2)
+        self.addresses_table.setHorizontalHeaderLabels(["Path", "Address & Keys"])
+        self.addresses_table.horizontalHeader().setSectionResizeMode(0, QHeaderView.ResizeMode.ResizeToContents)
+        self.addresses_table.horizontalHeader().setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+
+        # Populate rows
         self.addresses_table.setRowCount(len(addresses))
         for i, addr_info in enumerate(addresses):
+            # Path
             path_item = QTableWidgetItem(addr_info['path'])
-            address_item = QTableWidgetItem(addr_info['address'])
-            address_item.setFont(QFont("Courier", 9))
+            path_item.setFont(QFont("", 9))
             self.addresses_table.setItem(i, 0, path_item)
-            self.addresses_table.setItem(i, 1, address_item)
 
-        self.addresses_table.resizeColumnsToContents()
+            # Address & Keys in single cell
+            if show_keys:
+                # Format with labels and colors using HTML-like structure
+                pubkey = addr_info.get('pubkey', 'N/A')
+                privkey = addr_info.get('privkey', 'N/A')
+
+                details_text = (
+                    f"Address: {addr_info['address']}\n"
+                    f"PubKey:  {pubkey}\n"
+                    f"PrivKey: {privkey}"
+                )
+            else:
+                details_text = addr_info['address']
+
+            details_item = QTableWidgetItem(details_text)
+            details_item.setFont(QFont("Courier", 9))
+            self.addresses_table.setItem(i, 1, details_item)
+
+        # Adjust row heights based on content
+        if show_keys:
+            for i in range(len(addresses)):
+                self.addresses_table.setRowHeight(i, 75)
+        else:
+            self.addresses_table.resizeRowsToContents()
+
+        self.addresses_table.resizeColumnToContents(0)
+
+    def toggle_keys_display(self):
+        """Toggle the display of public and private keys in the addresses table."""
+        self._populate_addresses_table()
 
     def toggle_master_keys(self, state):
         """
@@ -283,11 +357,53 @@ class WalletDisplayWidget(QWidget):
         if not self.wallet_data:
             return
 
-        addresses_text = "\n".join([
-            f"{addr['path']}: {addr['address']}"
-            for addr in self.wallet_data['addresses']
-        ])
+        show_keys = self.show_keys_checkbox.isChecked()
+
+        if show_keys:
+            addresses_text = "\n".join([
+                f"{addr['path']}\n"
+                f"  Address: {addr['address']}\n"
+                f"  PubKey:  {addr.get('pubkey', 'N/A')}\n"
+                f"  PrivKey: {addr.get('privkey', 'N/A')}\n"
+                for addr in self.wallet_data['addresses']
+            ])
+        else:
+            addresses_text = "\n".join([
+                f"{addr['path']}: {addr['address']}"
+                for addr in self.wallet_data['addresses']
+            ])
+
         self.copy_to_clipboard(addresses_text)
+
+    def copy_selected_row(self):
+        """Copy the selected row data to clipboard."""
+        if not self.wallet_data:
+            return
+
+        selected_rows = self.addresses_table.selectedItems()
+        if not selected_rows:
+            QMessageBox.warning(self, "No Selection", "Please select a row first.")
+            return
+
+        # Get the row index
+        row = self.addresses_table.currentRow()
+        if row < 0 or row >= len(self.wallet_data['addresses']):
+            return
+
+        addr_info = self.wallet_data['addresses'][row]
+        show_keys = self.show_keys_checkbox.isChecked()
+
+        if show_keys:
+            text = (
+                f"Path: {addr_info['path']}\n"
+                f"Address: {addr_info['address']}\n"
+                f"Public Key: {addr_info.get('pubkey', 'N/A')}\n"
+                f"Private Key: {addr_info.get('privkey', 'N/A')}"
+            )
+        else:
+            text = f"{addr_info['path']}: {addr_info['address']}"
+
+        self.copy_to_clipboard(text)
 
     def save_to_file(self):
         """Save wallet data to JSON file."""
