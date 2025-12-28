@@ -300,35 +300,124 @@ class WalletDisplayWidget(QWidget):
             path_item.setFont(QFont("", 9))
             self.addresses_table.setItem(i, 0, path_item)
 
-            # Address & Keys in single cell
-            if show_keys:
-                # Format with labels and colors using HTML-like structure
-                pubkey = addr_info.get('pubkey', 'N/A')
-                privkey = addr_info.get('privkey', 'N/A')
-
-                details_text = (
-                    f"Address: {addr_info['address']}\n"
-                    f"PubKey:  {pubkey}\n"
-                    f"PrivKey: {privkey}"
-                )
-            else:
-                details_text = addr_info['address']
-
-            details_item = QTableWidgetItem(details_text)
-            details_item.setFont(QFont("Courier", 9))
-            self.addresses_table.setItem(i, 1, details_item)
+            # Create custom widget for Address & Keys with copy buttons
+            details_widget = self._create_details_widget(addr_info, show_keys)
+            self.addresses_table.setCellWidget(i, 1, details_widget)
 
         # Adjust row heights based on content
         if show_keys:
             for i in range(len(addresses)):
-                self.addresses_table.setRowHeight(i, 75)
+                self.addresses_table.setRowHeight(i, 95)
         else:
-            self.addresses_table.resizeRowsToContents()
+            for i in range(len(addresses)):
+                self.addresses_table.setRowHeight(i, 35)
 
         self.addresses_table.resizeColumnToContents(0)
 
         # Adjust table height based on content
         self._adjust_table_height(show_keys, len(addresses))
+
+    def _create_details_widget(self, addr_info: dict, show_keys: bool) -> QWidget:
+        """
+        Create a custom widget for address details with copy buttons.
+
+        Args:
+            addr_info: Address information dictionary
+            show_keys: Whether to show keys
+
+        Returns:
+            QWidget with formatted details and copy buttons
+        """
+        widget = QWidget()
+        layout = QVBoxLayout(widget)
+        layout.setContentsMargins(5, 2, 5, 2)
+        layout.setSpacing(2)
+
+        # Address row
+        addr_layout = QHBoxLayout()
+        addr_layout.setSpacing(5)
+
+        if show_keys:
+            addr_label = QLabel("Address:")
+            addr_label.setFont(QFont("", 9))
+            addr_label.setFixedWidth(60)
+            addr_layout.addWidget(addr_label)
+
+        addr_value = QLabel(addr_info['address'])
+        addr_value.setFont(QFont("Courier", 9))
+        addr_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        addr_layout.addWidget(addr_value)
+
+        copy_addr_btn = QPushButton("📋")
+        copy_addr_btn.setFixedSize(25, 20)
+        copy_addr_btn.setToolTip("Copy address")
+        copy_addr_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(addr_info['address']))
+        addr_layout.addWidget(copy_addr_btn)
+
+        layout.addLayout(addr_layout)
+
+        if show_keys:
+            # PubKey row
+            pubkey = addr_info.get('pubkey', 'N/A')
+            pubkey_layout = QHBoxLayout()
+            pubkey_layout.setSpacing(5)
+
+            pubkey_label = QLabel("PubKey:")
+            pubkey_label.setFont(QFont("", 9))
+            pubkey_label.setFixedWidth(60)
+            pubkey_layout.addWidget(pubkey_label)
+
+            pubkey_value = QLabel(pubkey)
+            pubkey_value.setFont(QFont("Courier", 8))
+            pubkey_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            pubkey_value.setStyleSheet("color: #2e7d32;")  # Dark green
+            pubkey_layout.addWidget(pubkey_value)
+
+            copy_pubkey_btn = QPushButton("📋")
+            copy_pubkey_btn.setFixedSize(25, 20)
+            copy_pubkey_btn.setToolTip("Copy public key")
+            copy_pubkey_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(pubkey))
+            pubkey_layout.addWidget(copy_pubkey_btn)
+
+            layout.addLayout(pubkey_layout)
+
+            # PrivKey row
+            privkey = addr_info.get('privkey', 'N/A')
+            privkey_layout = QHBoxLayout()
+            privkey_layout.setSpacing(5)
+
+            privkey_label = QLabel("PrivKey:")
+            privkey_label.setFont(QFont("", 9))
+            privkey_label.setFixedWidth(60)
+            privkey_layout.addWidget(privkey_label)
+
+            privkey_value = QLabel(privkey)
+            privkey_value.setFont(QFont("Courier", 8))
+            privkey_value.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            privkey_value.setStyleSheet("color: #c62828;")  # Dark red
+            privkey_layout.addWidget(privkey_value)
+
+            copy_privkey_btn = QPushButton("📋")
+            copy_privkey_btn.setFixedSize(25, 20)
+            copy_privkey_btn.setToolTip("Copy private key")
+            copy_privkey_btn.clicked.connect(lambda: self._copy_to_clipboard_silent(privkey))
+            privkey_layout.addWidget(copy_privkey_btn)
+
+            layout.addLayout(privkey_layout)
+
+        return widget
+
+    def _copy_to_clipboard_silent(self, text: str):
+        """
+        Copy text to clipboard without showing a popup message.
+
+        Args:
+            text: Text to copy
+        """
+        clipboard = QApplication.clipboard()
+        clipboard.setText(text)
+        # Optional: Show brief status in status bar if available
+        # For now, just copy silently for better UX
 
     def _adjust_table_height(self, show_keys: bool, num_addresses: int):
         """
@@ -342,17 +431,17 @@ class WalletDisplayWidget(QWidget):
         header_height = self.addresses_table.horizontalHeader().height()
 
         if show_keys:
-            # Each row is 75px when keys are shown
-            row_height = 75
+            # Each row is 95px when keys are shown (with copy buttons)
+            row_height = 95
             total_height = header_height + (row_height * num_addresses) + 2  # +2 for borders
         else:
-            # Each row is ~30px when keys are hidden
-            row_height = 30
+            # Each row is ~35px when keys are hidden
+            row_height = 35
             total_height = header_height + (row_height * num_addresses) + 2
 
         # Set minimum and maximum heights for better UX
         min_height = 200  # Minimum height
-        max_height = 600  # Maximum height to avoid too large tables
+        max_height = 650  # Maximum height to avoid too large tables
 
         calculated_height = max(min_height, min(total_height, max_height))
         self.addresses_table.setMinimumHeight(calculated_height)
