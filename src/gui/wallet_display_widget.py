@@ -14,6 +14,7 @@ from pathlib import Path
 from .password_dialog import PasswordDialog
 from plm_wallet.crypto.encryption import WalletEncryption
 from plm_wallet.crypto.exceptions import EncryptionError
+from plm_wallet.config.constants import WALLETS_DIR
 
 
 class WalletDisplayWidget(QWidget):
@@ -605,8 +606,7 @@ class WalletDisplayWidget(QWidget):
             return
 
         # Create wallets directory if it doesn't exist
-        wallets_dir = Path("wallets")
-        wallets_dir.mkdir(parents=True, exist_ok=True)
+        WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 
         # Generate default filename based on standard and timestamp
         from datetime import datetime
@@ -617,7 +617,7 @@ class WalletDisplayWidget(QWidget):
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Wallet Data",
-            str(wallets_dir / default_filename),
+            str(WALLETS_DIR / default_filename),
             "JSON Files (*.json)"
         )
 
@@ -652,8 +652,14 @@ class WalletDisplayWidget(QWidget):
                         return
 
                 # Save to file
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     json.dump(data_to_save, f, indent=2)
+
+                # Set secure permissions on Unix/Linux
+                import os
+                import stat
+                if os.name != 'nt':
+                    os.chmod(file_path, stat.S_IRUSR | stat.S_IWUSR)
 
                 encryption_status = "encrypted " if reply == QMessageBox.StandardButton.Yes else ""
                 QMessageBox.information(
@@ -682,7 +688,7 @@ class WalletDisplayWidget(QWidget):
 
         if file_path:
             try:
-                with open(file_path, 'w') as f:
+                with open(file_path, 'w', encoding='utf-8') as f:
                     f.write(self.wallet_data['mnemonic'])
                 QMessageBox.information(self, "Success", f"Mnemonic exported to:\n{file_path}")
             except Exception as e:

@@ -26,12 +26,18 @@ def save_to_json(wallet_data: dict, filename: str):
         filename: Filename (e.g., 'wallet.json')
     """
     # Ensure wallets directory exists
-    WALLETS_DIR.mkdir(exist_ok=True)
+    WALLETS_DIR.mkdir(parents=True, exist_ok=True)
 
     # Save to wallets/ directory
     filepath = WALLETS_DIR / filename
 
-    with open(filepath, 'w') as f:
+    with open(filepath, 'w', encoding='utf-8') as f:
         json.dump(wallet_data, f, indent=4)
+
+    # Set secure permissions on Unix/Linux
+    import os
+    import stat
+    if os.name != 'nt':
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IWUSR)
 
     print(f"Saved to: {filepath}")

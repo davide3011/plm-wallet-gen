@@ -12,6 +12,7 @@ import json
 from .password_dialog import PasswordDialog
 from plm_wallet.crypto.encryption import WalletEncryption
 from plm_wallet.crypto.exceptions import InvalidPasswordError, DecryptionError
+from plm_wallet.config.constants import WALLETS_DIR
 
 
 class WalletLoaderWidget(QWidget):
@@ -21,7 +22,7 @@ class WalletLoaderWidget(QWidget):
 
     def __init__(self):
         super().__init__()
-        self.wallets_dir = Path("wallets")
+        self.wallets_dir = WALLETS_DIR
         self.init_ui()
 
     def init_ui(self):
@@ -177,7 +178,7 @@ class WalletLoaderWidget(QWidget):
             file_path: Path to the wallet JSON file
         """
         try:
-            with open(file_path, 'r') as f:
+            with open(file_path, 'r', encoding='utf-8') as f:
                 wallet_data = json.load(f)
 
             # Check if wallet is encrypted
