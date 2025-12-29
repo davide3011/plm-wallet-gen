@@ -622,6 +622,9 @@ class WalletDisplayWidget(QWidget):
         )
 
         if file_path:
+            # Ensure .json extension on Linux
+            if not file_path.lower().endswith('.json'):
+                file_path += '.json'
             # Ask if user wants to encrypt the wallet
             reply = QMessageBox.question(
                 self,
