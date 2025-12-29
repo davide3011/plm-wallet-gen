@@ -2,12 +2,16 @@
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
-    QListWidget, QListWidgetItem, QMessageBox, QFileDialog
+    QListWidget, QListWidgetItem, QMessageBox, QFileDialog, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 from pathlib import Path
 import json
+
+from .password_dialog import PasswordDialog
+from plm_wallet.crypto.encryption import WalletEncryption
+from plm_wallet.crypto.exceptions import InvalidPasswordError, DecryptionError
 
 
 class WalletLoaderWidget(QWidget):
@@ -175,6 +179,47 @@ class WalletLoaderWidget(QWidget):
         try:
             with open(file_path, 'r') as f:
                 wallet_data = json.load(f)
+
+            # Check if wallet is encrypted
+            if WalletEncryption.is_encrypted(wallet_data):
+                # Show password dialog
+                filename = Path(file_path).name
+                max_attempts = 3
+
+                for attempt in range(max_attempts):
+                    password_dialog = PasswordDialog(self, mode='decrypt', filename=filename)
+                    if password_dialog.exec() == QDialog.DialogCode.Accepted:
+                        password = password_dialog.get_password()
+                        if password:
+                            try:
+                                # Decrypt the wallet
+                                wallet_data = WalletEncryption.decrypt_wallet(wallet_data, password)
+                                break  # Successfully decrypted
+                            except InvalidPasswordError:
+                                remaining = max_attempts - attempt - 1
+                                if remaining > 0:
+                                    QMessageBox.warning(
+                                        self,
+                                        "Invalid Password",
+                                        f"Incorrect password. {remaining} attempt(s) remaining."
+                                    )
+                                else:
+                                    QMessageBox.critical(
+                                        self,
+                                        "Access Denied",
+                                        "Maximum password attempts reached. Cannot open wallet."
+                                    )
+                                    return
+                            except DecryptionError as e:
+                                QMessageBox.critical(
+                                    self,
+                                    "Decryption Error",
+                                    f"Failed to decrypt wallet:\n{str(e)}"
+                                )
+                                return
+                    else:
+                        # User cancelled password dialog
+                        return
 
             # Validate wallet data
             required_fields = ['mnemonic', 'standard', 'derivation_path', 'addresses']

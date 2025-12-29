@@ -3,3 +3,4 @@ ecdsa>=0.18.0
 base58>=2.1.1
 bech32>=1.2.0
 PyQt6>=6.6.0
+cryptography>=41.0.0

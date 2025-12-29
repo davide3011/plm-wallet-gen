@@ -3,13 +3,17 @@
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QTextEdit, QGroupBox, QTableWidget, QTableWidgetItem,
-    QFileDialog, QMessageBox, QScrollArea, QCheckBox, QHeaderView
+    QFileDialog, QMessageBox, QScrollArea, QCheckBox, QHeaderView, QDialog
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QClipboard
 from PyQt6.QtWidgets import QApplication
 import json
 from pathlib import Path
+
+from .password_dialog import PasswordDialog
+from plm_wallet.crypto.encryption import WalletEncryption
+from plm_wallet.crypto.exceptions import EncryptionError
 
 
 class WalletDisplayWidget(QWidget):
@@ -618,11 +622,49 @@ class WalletDisplayWidget(QWidget):
         )
 
         if file_path:
+            # Ask if user wants to encrypt the wallet
+            reply = QMessageBox.question(
+                self,
+                "Encrypt Wallet?",
+                "Do you want to encrypt this wallet with a password?\n\n"
+                "Encrypted wallets are more secure but require a password to open.\n"
+                "Choose 'No' to save without encryption.",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Yes
+            )
+
+            if reply == QMessageBox.StandardButton.Cancel:
+                return
+
             try:
+                data_to_save = self.wallet_data
+
+                # If user wants encryption, show password dialog
+                if reply == QMessageBox.StandardButton.Yes:
+                    password_dialog = PasswordDialog(self, mode='encrypt')
+                    if password_dialog.exec() == QDialog.DialogCode.Accepted:
+                        password = password_dialog.get_password()
+                        if password:
+                            # Encrypt the wallet data
+                            data_to_save = WalletEncryption.encrypt_wallet(self.wallet_data, password)
+                    else:
+                        # User cancelled the password dialog
+                        return
+
+                # Save to file
                 with open(file_path, 'w') as f:
-                    json.dump(self.wallet_data, f, indent=2)
-                QMessageBox.information(self, "Success", f"Wallet saved to:\n{file_path}")
+                    json.dump(data_to_save, f, indent=2)
+
+                encryption_status = "encrypted " if reply == QMessageBox.StandardButton.Yes else ""
+                QMessageBox.information(
+                    self,
+                    "Success",
+                    f"Wallet {encryption_status}saved to:\n{file_path}"
+                )
                 self.wallet_saved.emit()  # Notify that wallet was saved
+
+            except EncryptionError as e:
+                QMessageBox.critical(self, "Encryption Error", f"Failed to encrypt wallet:\n{str(e)}")
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save wallet:\n{str(e)}")
 
