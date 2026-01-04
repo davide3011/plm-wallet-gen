@@ -5,6 +5,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QIcon
+from pathlib import Path
 from .wallet_generator_widget import WalletGeneratorWidget
 from .wallet_display_widget import WalletDisplayWidget
 from .wallet_loader_widget import WalletLoaderWidget
@@ -21,6 +22,11 @@ class MainWindow(QMainWindow):
         """Initialize the user interface."""
         self.setWindowTitle("PLM Wallet Generator")
         self.setMinimumSize(900, 700)
+
+        # Set window icon
+        icon_path = Path(__file__).parent / "icons" / "icon.ico"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
 
         # Central widget
         central_widget = QWidget()
