@@ -247,11 +247,6 @@ class WalletDisplayWidget(QWidget):
         save_btn.clicked.connect(self.save_to_file)
         btn_layout.addWidget(save_btn)
 
-        export_mnemonic_btn = QPushButton("Export Mnemonic Only")
-        export_mnemonic_btn.setMinimumHeight(35)
-        export_mnemonic_btn.clicked.connect(self.export_mnemonic)
-        btn_layout.addWidget(export_mnemonic_btn)
-
         wallet_layout.addLayout(btn_layout)
 
         self.wallet_container.setLayout(wallet_layout)
@@ -677,22 +672,3 @@ class WalletDisplayWidget(QWidget):
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to save wallet:\n{str(e)}")
 
-    def export_mnemonic(self):
-        """Export only the mnemonic phrase to a text file."""
-        if not self.wallet_data:
-            return
-
-        file_path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Export Mnemonic",
-            str(Path.home() / "mnemonic.txt"),
-            "Text Files (*.txt)"
-        )
-
-        if file_path:
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    f.write(self.wallet_data['mnemonic'])
-                QMessageBox.information(self, "Success", f"Mnemonic exported to:\n{file_path}")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to export mnemonic:\n{str(e)}")
