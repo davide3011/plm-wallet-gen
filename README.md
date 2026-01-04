@@ -183,6 +183,19 @@ All standard libraries that do one thing and do it well:
 
 See `requirements.txt` for versions.
 
+## Building Windows Executable
+
+Want a standalone .exe file?
+
+```bash
+cd builds\windows
+.\build.bat
+```
+
+The executable will be in `dist\PLM-Wallet-Generator.exe`.
+
+For full instructions, requirements, and troubleshooting, see **[builds/windows/README.md](builds/windows/README.md)**.
+
 ## Configuration
 
 Optional `.env` file if you want to change defaults:
